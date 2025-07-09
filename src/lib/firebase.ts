@@ -2,9 +2,6 @@
 import { initializeApp, getApps } from "firebase/app";
 import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
-
-import { getAnalytics, isSupported } from "firebase/analytics"; // ✅ to get GA4 data flow from firebase
-
 // TODO: Add SDKs for Firebase products that you want to use
 // https://firebase.google.com/docs/web/setup#available-libraries
 
@@ -25,20 +22,4 @@ const app = !getApps().length ? initializeApp(firebaseConfig) : getApps()[0];
 export const auth = getAuth(app);
 export const db = getFirestore(app);
 
-// for GA4 linking
-// ✅ Initialize analytics only on the client side
-let analytics;
-
-//🧠 Why typeof window !== "undefined"?
-//Because Firebase Analytics only runs in the browser, and you're using Next.js (where code can also run server-side).
-if (typeof window !== "undefined") {
-  isSupported().then((yes) => {
-    if (yes) {
-      analytics = getAnalytics(app);
-    }
-  });
-}
-
 export default app;
-
-
