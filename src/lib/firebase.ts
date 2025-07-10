@@ -22,8 +22,8 @@ export const db = getFirestore(app);
 
 // ✅ Only initialize analytics on client side
 let analytics: ReturnType<typeof getAnalytics> | undefined = undefined;
-if (typeof window !== "undefined") {
-  isSupported().then((supported) => {
+if (typeof window !== "undefined") { // typeof window !== "undefined" ensures this only runs in the browser (important for Next.js or SSR).
+  isSupported().then((supported) => { // isSupported() handles environments like React Native or Node that don’t support Analytics.
     if (supported) {
       analytics = getAnalytics(app);
     }
