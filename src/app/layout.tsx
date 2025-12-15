@@ -45,6 +45,7 @@ export default function RootLayout({
           </header>
           <main className="max-w-4xl mx-auto mt-6">{children}</main>
         </CartProvider>
+        <Script src="/diad-chat-widget.js" strategy="afterInteractive" />
       </body>
     </html>
   );
