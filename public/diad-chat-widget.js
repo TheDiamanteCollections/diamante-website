@@ -6,8 +6,9 @@
   //   const API_BASE = "http://127.0.0.1:8002";
   // For production (after you deploy the API, e.g. Cloud Run URL):
   //   const API_BASE = "https://your-diad-backend-url";
-  
-  const API_BASE = "https://diad-external-chat-38640153199.asia-southeast1.run.app";
+
+  const API_BASE = window.DIAD_API_BASE ||
+  "https://diad-external-chat-38640153199.asia-southeast1.run.app";
 
 
   const SESSION_KEY = "diad_external_chat_session_id";
@@ -185,6 +186,15 @@
         font-size: 12px;
         font-family: inherit;
         box-sizing: border-box;
+        background: #ffffff !important;
+        color: #111827 !important;
+        caret-color: #111827 !important;
+      }
+
+      .diad-chat-footer input::placeholder,
+      .diad-chat-footer textarea::placeholder {
+        color: #6b7280 !important;
+        opacity: 1 !important;
       }
 
       .diad-chat-footer textarea {
