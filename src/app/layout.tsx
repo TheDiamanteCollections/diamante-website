@@ -45,7 +45,7 @@ export default function RootLayout({
           </header>
           <main className="max-w-4xl mx-auto mt-6">{children}</main>
         </CartProvider>
-        <Script src="/diad-chat-widget.js" strategy="afterInteractive" data-api-base="https://diad-external-chat-38640153199.asia-southeast1.run.app"/>
+        <Script src="/diad-chat-widget.js" strategy="afterInteractive" data-api-base="https://diad-external-chat-66176258702.asia-southeast1.run.app"/>
       </body>
     </html>
   );
