@@ -7,8 +7,24 @@
   // For production (after you deploy the API, e.g. Cloud Run URL):
   //   const API_BASE = "https://your-diad-backend-url";
 
-  const API_BASE = window.DIAD_API_BASE ||
-  "https://diad-external-chat-38640153199.asia-southeast1.run.app";
+  function getApiBase() {
+    // 1) If site sets a global, use it
+    if (window.DIAD_API_BASE) return window.DIAD_API_BASE;
+
+    // 2) Read from the script tag attribute: <script ... data-api-base="...">
+    const thisScript =
+      document.currentScript ||
+      document.querySelector('script[src*="diad-chat-widget.js"]');
+
+    const fromAttr = thisScript && thisScript.getAttribute("data-api-base");
+    if (fromAttr) return fromAttr.replace(/\/$/, "");
+
+    // 3) Last resort fallback (keep it correct!)
+    return "https://diad-external-chat-66176258702.asia-southeast1.run.app";
+  }
+
+  const API_BASE = getApiBase();
+
 
 
   const SESSION_KEY = "diad_external_chat_session_id";
@@ -316,10 +332,14 @@
       const email = emailInput.value.trim();
 
       if (!q) return;
-      if (!email) {
+
+      // Optional: only ask for email if user is asking about orders
+      const looksLikeOrder = /ord-\d+/i.test(q) || /order/i.test(q);
+      if (looksLikeOrder && !email) {
         alert("Please enter the email you used for your orders.");
         return;
       }
+
 
       addMessage("user", q);
       questionInput.value = "";
