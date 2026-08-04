@@ -40,6 +40,8 @@ export default function RootLayout({
                 <Link href="/cart">Cart</Link>
                 <Link href="/orders">Orders</Link>
                 <Link href="/auth">Account</Link>
+                <Link href="/external_chatbot">Support Chat</Link>
+                <Link href="/internal_chatbot">Internal BI</Link>
               </nav>
             </div>
           </header>
@@ -48,7 +50,6 @@ export default function RootLayout({
         <Script
           src="/diad-chat-widget.js"
           strategy="afterInteractive"
-          data-api-base="https://diad-external-chat-66176258702.asia-southeast1.run.app"
         />
       </body>
     </html>
