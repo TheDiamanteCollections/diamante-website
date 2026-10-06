@@ -174,8 +174,8 @@ git push origin main
 
 ## 🔒 Security & Backend API Architecture
 
-- **Customer Support Endpoint**: `https://diad-external-chat-yhpwhxzeeq-uc.a.run.app/external/chat`
-- **Internal BI Endpoint**: `https://diad-internal-chat-yhpwhxzeeq-uc.a.run.app/internal/chat`
+- **Customer Support Endpoint**: `/external/chat`
+- **Internal BI Endpoint**: `/internal/chat`
 - **GCP Project ID**: `diamante-diad`
 - **PII Data Security**: Customer emails, phone numbers, and street addresses are automatically masked in real-time before reaching vector stores or response generators.
 

@@ -268,11 +268,11 @@
     </div>
     <div class="header-controls">
       <select id="endpointSelect" class="endpoint-select">
-        <option value="/external/chat">Dashboard Local API (/external/chat)</option>
-        <option value="https://diad-external-chat-yhpwhxzeeq-uc.a.run.app/external/chat">Cloud Run (Production Live)</option>
-        <option value="http://localhost:8002/external/chat">Local (Port 8002 Sandbox)</option>
+        <option value="/external/chat">Dashboard Local Relative (/external/chat)</option>
+        <option value="http://localhost:8000/external/chat">Local Dashboard Absolute (http://localhost:8000)</option>
+        <option value="/external/chat">Cloud Run (Production Live)</option>
       </select>
-
+ 
       <a href="/portal" class="nav-link">← Portal Home</a>
     </div>
   </header>
@@ -325,51 +325,54 @@ I can help you check your order status, tracking info, or answer questions about
 
       const email = document.getElementById('emailInput').value.trim();
       const orderNumber = document.getElementById('orderInput').value.trim();
-      const endpoint = document.getElementById('endpointSelect').value;
+      const selectedEndpoint = document.getElementById('endpointSelect').value;
 
       appendMessage('user', question);
       input.value = '';
 
       const loadingId = appendMessage('bot', 'Thinking...');
 
-      try {
-        const payload = { question };
-        if (email) payload.email = email;
-        if (orderNumber) payload.order_number = orderNumber;
+      const payload = { question };
+      if (email) payload.email = email;
+      if (orderNumber) payload.order_number = orderNumber;
 
-        const res = await fetch(endpoint, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
-        });
+      const cloudRunUrl = "/external/chat";
+      const endpointsToTry = [];
+      if (selectedEndpoint) endpointsToTry.push(selectedEndpoint);
 
-        if (!res.ok) throw new Error("HTTP " + res.status);
-        const data = await res.json();
-        const reply = data.answer || data.response || JSON.stringify(data, null, 2);
-        updateMessage(loadingId, reply);
-      } catch (err) {
-        // Fallback to local dashboard endpoint if remote Cloud Run is not reachable
-        if (endpoint !== '/external/chat') {
-          try {
-            const fallbackPayload = { question };
-            if (email) fallbackPayload.email = email;
-            if (orderNumber) fallbackPayload.order_number = orderNumber;
-
-            const fallbackRes = await fetch('/external/chat', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(fallbackPayload)
-            });
-            if (fallbackRes.ok) {
-              const data = await fallbackRes.json();
-              const reply = data.answer || data.response || JSON.stringify(data, null, 2);
-              updateMessage(loadingId, reply);
-              return;
-            }
-          } catch(fErr) {}
-        }
-        updateMessage(loadingId, '⚠️ Error connecting to chatbot backend: ' + err.message + '\nPlease verify your server is running or select "Dashboard Local API" in the top right dropdown.');
+      if (window.location.protocol.startsWith('http') && !endpointsToTry.includes('/external/chat')) {
+        endpointsToTry.push('/external/chat');
       }
+      if (!endpointsToTry.includes('http://localhost:8000/external/chat')) {
+        endpointsToTry.push('http://localhost:8000/external/chat');
+      }
+      if (!endpointsToTry.includes('http://127.0.0.1:8000/external/chat')) {
+        endpointsToTry.push('http://127.0.0.1:8000/external/chat');
+      }
+      if (cloudRunUrl && !cloudRunUrl.includes('{{') && cloudRunUrl.startsWith('http') && !endpointsToTry.includes(cloudRunUrl)) {
+        endpointsToTry.push(cloudRunUrl);
+      }
+
+      let lastErr = null;
+      for (const ep of endpointsToTry) {
+        try {
+          const res = await fetch(ep, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+          if (!res.ok) throw new Error("HTTP " + res.status);
+          const data = await res.json();
+          const reply = data.answer || data.response || JSON.stringify(data, null, 2);
+          updateMessage(loadingId, reply);
+          document.getElementById('endpointSelect').value = ep;
+          return;
+        } catch (err) {
+          lastErr = err;
+        }
+      }
+
+      updateMessage(loadingId, '⚠️ Error connecting to chatbot backend: ' + (lastErr ? lastErr.message : 'HTTP 404') + '\nPlease verify your server is running at http://localhost:8000 or deploy your Cloud Run service in GCP.');
     }
 
     let msgCounter = 0;
@@ -399,7 +402,14 @@ I can help you check your order status, tracking info, or answer questions about
     }
 
     function escapeHtml(str) {
-      return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\n/g, "<br>");
+      if (str === null || str === undefined) return '';
+      return String(str)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;")
+        .replace(/\n/g, "<br>");
     }
   </script>
 

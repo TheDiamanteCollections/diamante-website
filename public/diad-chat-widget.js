@@ -3,7 +3,7 @@
  * Drop this script into your website to enable a floating AI support assistant.
  */
 (function() {
-  const EXTERNAL_API_URL = "https://diad-external-chat-yhpwhxzeeq-uc.a.run.app/external/chat";
+  const EXTERNAL_API_URL = "/external/chat";
   const BUSINESS_NAME = "Diamante Collections";
 
   // Inject CSS styles
@@ -120,16 +120,40 @@
 
     const loadingId = appendMsg('bot', 'Checking...');
 
-    try {
-      const res = await fetch(EXTERNAL_API_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ question: text })
-      });
-      const data = await res.json();
-      updateMsg(loadingId, data.answer || data.response || "Thank you for reaching out.");
-    } catch (err) {
-      updateMsg(loadingId, "Connection error. Please try again.");
+    const configured = EXTERNAL_API_URL;
+    const urlsToTry = [];
+    if (configured && !configured.includes('{{') && configured.startsWith('http')) {
+      urlsToTry.push(configured);
+    }
+    if (window.location.protocol.startsWith('http') && !urlsToTry.includes('/external/chat')) {
+      urlsToTry.push('/external/chat');
+    }
+    if (!urlsToTry.includes('http://localhost:8000/external/chat')) {
+      urlsToTry.push('http://localhost:8000/external/chat');
+    }
+    if (!urlsToTry.includes('http://127.0.0.1:8000/external/chat')) {
+      urlsToTry.push('http://127.0.0.1:8000/external/chat');
+    }
+
+    let success = false;
+    for (const ep of urlsToTry) {
+      try {
+        const res = await fetch(ep, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ question: text })
+        });
+        if (!res.ok) continue;
+        const data = await res.json();
+        updateMsg(loadingId, data.answer || data.response || "Thank you for reaching out.");
+        success = true;
+        break;
+      } catch (err) {
+        // try next fallback
+      }
+    }
+    if (!success) {
+      updateMsg(loadingId, "Connection error. Please verify your DIAD server is running at http://localhost:8000.");
     }
   }
 

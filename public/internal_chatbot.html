@@ -263,9 +263,9 @@
     </div>
     <div class="header-controls">
       <select id="endpointSelect" class="endpoint-select">
-        <option value="/internal/chat">Dashboard Local API (/internal/chat)</option>
-        <option value="https://diad-internal-chat-yhpwhxzeeq-uc.a.run.app/internal/chat">Cloud Run (Production Live)</option>
-        <option value="http://localhost:8001/internal/chat">Local (Port 8001 Sandbox)</option>
+        <option value="/internal/chat">Dashboard Local Relative (/internal/chat)</option>
+        <option value="http://localhost:8000/internal/chat">Local Dashboard Absolute (http://localhost:8000)</option>
+        <option value="/internal/chat">Cloud Run (Production Live)</option>
       </select>
 
       <a href="/portal" class="nav-link">← Portal Home</a>
@@ -312,50 +312,52 @@ I am connected to your BigQuery data warehouse and Pinecone documentation vector
       const question = input.value.trim();
       if (!question) return;
 
-      const endpoint = document.getElementById('endpointSelect').value;
+      const selectedEndpoint = document.getElementById('endpointSelect').value;
 
       appendMessage('user', question);
       input.value = '';
 
       const loadingId = appendMessage('bot', 'Running query & synthesizing response...');
 
-      try {
-        const res = await fetch(endpoint, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ question })
-        });
+      const payload = { question };
+      const cloudRunUrl = "/internal/chat";
+      const endpointsToTry = [];
+      if (selectedEndpoint) endpointsToTry.push(selectedEndpoint);
 
-        if (!res.ok) throw new Error("HTTP " + res.status);
-        const data = await res.json();
-        let reply = data.answer || data.response || data.summary || JSON.stringify(data, null, 2);
-        
-        let extraHtml = '';
-        if (data.executed_sql) {
-          extraHtml += `<div class="sql-block"><strong>Executed SQL:</strong><br>${escapeHtml(data.executed_sql)}</div>`;
-        }
-
-        updateMessage(loadingId, reply, extraHtml);
-      } catch (err) {
-        // Fallback to local dashboard endpoint if remote Cloud Run is not reachable
-        if (endpoint !== '/internal/chat') {
-          try {
-            const fallbackRes = await fetch('/internal/chat', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ question })
-            });
-            if (fallbackRes.ok) {
-              const data = await fallbackRes.json();
-              let reply = data.answer || data.response || data.summary || JSON.stringify(data, null, 2);
-              let extraHtml = data.executed_sql ? `<div class="sql-block"><strong>Executed SQL (Local Fallback):</strong><br>${escapeHtml(data.executed_sql)}</div>` : '';
-              updateMessage(loadingId, reply, extraHtml);
-              return;
-            }
-          } catch(fErr) {}
-        }
-        updateMessage(loadingId, '⚠️ Error connecting to internal chatbot backend: ' + err.message + '\nPlease verify your server is running or select "Dashboard Local API" in the top right dropdown.');
+      if (window.location.protocol.startsWith('http') && !endpointsToTry.includes('/internal/chat')) {
+        endpointsToTry.push('/internal/chat');
       }
+      if (!endpointsToTry.includes('http://localhost:8000/internal/chat')) {
+        endpointsToTry.push('http://localhost:8000/internal/chat');
+      }
+      if (!endpointsToTry.includes('http://127.0.0.1:8000/internal/chat')) {
+        endpointsToTry.push('http://127.0.0.1:8000/internal/chat');
+      }
+      if (cloudRunUrl && !cloudRunUrl.includes('{{') && cloudRunUrl.startsWith('http') && !endpointsToTry.includes(cloudRunUrl)) {
+        endpointsToTry.push(cloudRunUrl);
+      }
+
+      let lastErr = null;
+      for (const ep of endpointsToTry) {
+        try {
+          const res = await fetch(ep, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+          if (!res.ok) throw new Error("HTTP " + res.status);
+          const data = await res.json();
+          let reply = data.answer || data.response || data.summary || JSON.stringify(data, null, 2);
+          let extraHtml = data.executed_sql ? `<div class="sql-block"><strong>Executed SQL:</strong><br>${escapeHtml(data.executed_sql)}</div>` : '';
+          updateMessage(loadingId, reply, extraHtml);
+          document.getElementById('endpointSelect').value = ep;
+          return;
+        } catch (err) {
+          lastErr = err;
+        }
+      }
+
+      updateMessage(loadingId, '⚠️ Error connecting to internal chatbot backend: ' + (lastErr ? lastErr.message : 'HTTP 404') + '\nPlease verify your server is running at http://localhost:8000 or deploy your Cloud Run service in GCP.');
     }
 
     let msgCounter = 0;
@@ -391,7 +393,14 @@ I am connected to your BigQuery data warehouse and Pinecone documentation vector
     }
 
     function escapeHtml(str) {
-      return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\n/g, "<br>");
+      if (str === null || str === undefined) return '';
+      return String(str)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;")
+        .replace(/\n/g, "<br>");
     }
   </script>
 
